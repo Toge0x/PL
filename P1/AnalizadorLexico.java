@@ -1,7 +1,6 @@
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Arrays;
 
 public class AnalizadorLexico{
 
@@ -141,10 +140,89 @@ public class AnalizadorLexico{
         }
     }
 
+    public void deshacer_lookahead(int estado){
+
+    }
+
+    public void comprobar_palabras_reservadas(Token token){
+        if(token.lexema.equals("class")){
+            token.tipo = 10;        // tipo CLASS
+        }else if(token.lexema.equals("fun")){
+            token.tipo = 11;        // tipo FUN
+        }else if(token.lexema.equals("int")){
+            token.tipo = 12;        // tipo INT
+        }else if(token.lexema.equals("float")){
+            token.tipo = 13;        // tipo FLOAT
+        }else if(token.lexema.equals("if")){
+            token.tipo = 14;        // tipo IF
+        }else if(token.lexema.equals("else")){
+            token.tipo = 15;        // tipo ELSE
+        }else if(token.lexema.equals("fi")){
+            token.tipo = 16;        // tipo FI
+        }else if(token.lexema.equals("print")){
+            token.tipo = 17;        // tipo PRINT
+        }
+        // si no es ninguna será un simple id...
+    }
+
+    public void comprobar_tipo_token(int nuevo_estado, Token token){
+        switch (nuevo_estado) {
+            case 1:
+                token.tipo = 0;     // tipo PARI
+                break;
+            case 2:
+                token.tipo = 1;     // tipo PARD
+                break;
+            case 3:
+                token.tipo = 2;     // tipo DOSP
+                break;
+            case 4:
+                token.tipo = 3;     // tipo LBRA
+                break;
+            case 5:
+                token.tipo = 4;     // tipo RBRA
+                break;
+            case 8:
+                token.tipo = 5;     // tipo ASIG
+                break;
+            case 9:
+                token.tipo = 6;     // tipo PYC
+                break;
+            case 7:
+            case 11:
+            case 12:
+            case 14:
+            case 15:
+                token.tipo = 7;     // tipo OPREL
+                break;
+            case 18:
+            case 19:
+                token.tipo = 8;     // tipo OPAS
+                break;
+            case 20:
+            case 21:
+                token.tipo = 9;     // tipo OPMUL
+                break;
+            case 27:
+                token.tipo = 18;    // tipo ID
+                comprobar_palabras_reservadas(token);   // sabiendo que es id comprobamos reservadas
+                break;
+            case 29:
+            case 33:
+                token.tipo = 19;    // tipo NUMENTERO
+                break;
+            case 32:
+                token.tipo = 20;    // tipo NUMREAL
+                break;
+            default:
+                break;
+        }
+    }
+
     public Token siguienteToken(){
-        String lexema;
+        String lexema = null;
         this.estado = 0;
-        Token token = new Token();
+        Token token = new Token(); 
 
         do{
             char simbolo = leerCaracter();
@@ -152,7 +230,24 @@ public class AnalizadorLexico{
                 return null;
             }
             int nuevo_estado = delta(estado, simbolo);
+            if(nuevo_estado == -2){
+                System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto");   // lanzar error lexico
+            }
             
+            if(esEstadoFinal(nuevo_estado) == true){    // llegamos al final de un token
+                //deshacer_lookahead(nuevo_estado);
+                token.lexema = lexema;
+                // comprobar tipo del token
+                comprobar_tipo_token(nuevo_estado, token);
+                // comprobar palabras reservadas
+                return token;
+
+            }else{  // seguimos leyendo los simbolos hasta final de token
+                //concatenar_simbolo_a_token(nuevo_estado, simbolo);
+                lexema += simbolo;  // a esto se refiere concatenar_simbolo_a_token?
+                this.estado = nuevo_estado;
+                simbolo = leerCaracter();
+            }
         }while(true);
 
     }
