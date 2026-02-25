@@ -11,22 +11,18 @@ public class AnalizadorLexico{
     RandomAccessFile fichero;
 
     AnalizadorLexico(RandomAccessFile fich){
-        fichero = fich;
-        // leer fichero secuencialmente
+        this.fichero = fich;
+        this.estado = 0;
+        this.fila = 1;
+        this.columna = 1;
     }
 
     private boolean esEstadoFinal(int estado){
         switch(estado){
             case 1: case 2: case 3: case 4: case 5:
-            case 7: case 8: case 9:
-            case 11: case 12:
-            case 14: case 15:
-            case 17:
-            case 18: case 19: case 20:
-            case 22:
-            case 27:
-            case 29:
-            case 32:
+            case 7: case 8: case 9: case 11: case 12:
+            case 14: case 15: case 17: case 18: case 19:
+            case 20: case 22: case 27: case 29: case 32:
                 return true;
             default:
                 return false;
@@ -37,6 +33,7 @@ public class AnalizadorLexico{
         char currentChar;
         try{
             currentChar = (char) fichero.readByte();
+            System.out.println((int)currentChar);
             return currentChar;
         }catch(EOFException e){
             return Token.EOF;
@@ -45,6 +42,7 @@ public class AnalizadorLexico{
         }
         return ' ';
     }
+
 
     public int delta(int estadoActual, char simbolo){
         switch (estadoActual){
@@ -65,7 +63,7 @@ public class AnalizadorLexico{
                 else if(simbolo == '/') return 21;
                 else if(Character.isLetter(simbolo)) return 26;
                 else if(Character.isDigit(simbolo)) return 28;
-                else return -1;
+                else return -2;
             case 1:
             case 2:
             case 3:
@@ -140,115 +138,137 @@ public class AnalizadorLexico{
         }
     }
 
-    public void deshacer_lookahead(int estado){
-
-    }
-
     public void comprobar_palabras_reservadas(Token token){
         if(token.lexema.equals("class")){
-            token.tipo = 10;        // tipo CLASS
+            token.tipo = Token.CLASS;        // tipo CLASS
         }else if(token.lexema.equals("fun")){
-            token.tipo = 11;        // tipo FUN
+            token.tipo = Token.FUN;        // tipo FUN
         }else if(token.lexema.equals("int")){
-            token.tipo = 12;        // tipo INT
+            token.tipo = Token.INT;        // tipo INT
         }else if(token.lexema.equals("float")){
-            token.tipo = 13;        // tipo FLOAT
+            token.tipo = Token.FLOAT;        // tipo FLOAT
         }else if(token.lexema.equals("if")){
-            token.tipo = 14;        // tipo IF
+            token.tipo = Token.IF;        // tipo IF
         }else if(token.lexema.equals("else")){
-            token.tipo = 15;        // tipo ELSE
+            token.tipo = Token.ELSE;        // tipo ELSE
         }else if(token.lexema.equals("fi")){
-            token.tipo = 16;        // tipo FI
+            token.tipo = Token.FI;        // tipo FI
         }else if(token.lexema.equals("print")){
-            token.tipo = 17;        // tipo PRINT
+            token.tipo = Token.PRINT;        // tipo PRINT
         }
         // si no es ninguna será un simple id...
     }
 
     public void comprobar_tipo_token(int nuevo_estado, Token token){
-        switch (nuevo_estado) {
+        switch(nuevo_estado){
             case 1:
-                token.tipo = 0;     // tipo PARI
+                token.tipo = Token.PARI;     // tipo PARI
                 break;
             case 2:
-                token.tipo = 1;     // tipo PARD
+                token.tipo = Token.PARD;     // tipo PARD
                 break;
             case 3:
-                token.tipo = 2;     // tipo DOSP
+                token.tipo = Token.DOSP;     // tipo DOSP
                 break;
             case 4:
-                token.tipo = 3;     // tipo LBRA
+                token.tipo = Token.LBRA;     // tipo LBRA
                 break;
             case 5:
-                token.tipo = 4;     // tipo RBRA
+                token.tipo = Token.RBRA;     // tipo RBRA
                 break;
             case 8:
-                token.tipo = 5;     // tipo ASIG
+                token.tipo = Token.ASIG;     // tipo ASIG
                 break;
             case 9:
-                token.tipo = 6;     // tipo PYC
+                token.tipo = Token.PYC;     // tipo PYC
                 break;
             case 7:
             case 11:
             case 12:
             case 14:
             case 15:
-                token.tipo = 7;     // tipo OPREL
+                token.tipo = Token.OPREL;     // tipo OPREL
                 break;
             case 18:
             case 19:
-                token.tipo = 8;     // tipo OPAS
+                token.tipo = Token.OPAS;     // tipo OPAS
                 break;
             case 20:
             case 21:
-                token.tipo = 9;     // tipo OPMUL
+                token.tipo = Token.OPMUL;     // tipo OPMUL
                 break;
             case 27:
-                token.tipo = 18;    // tipo ID
+                token.tipo = Token.ID;    // tipo ID
                 comprobar_palabras_reservadas(token);   // sabiendo que es id comprobamos reservadas
                 break;
             case 29:
             case 33:
-                token.tipo = 19;    // tipo NUMENTERO
+                token.tipo = Token.NUMENTERO;    // tipo NUMENTERO
                 break;
             case 32:
-                token.tipo = 20;    // tipo NUMREAL
+                token.tipo = Token.NUMREAL;    // tipo NUMREAL
                 break;
             default:
                 break;
         }
     }
 
-    public Token siguienteToken(){
-        String lexema = null;
-        this.estado = 0;
-        Token token = new Token(); 
+    public boolean necesitaRetroceder(int estado){
+        switch(estado){
+            case 8:     // =
+            case 11:    // <
+            case 14:    // >
+            case 22:    // /
+            case 27:    // id
+            case 29:    // num entero
+            case 32:    // num real
+            case 33:    // caso especial decimal
+                return true;
+            default:
+                return false;
+        }
+    }
 
-        do{
-            char simbolo = leerCaracter();
-            if(simbolo == Token.EOF){
-                return null;
-            }
-            int nuevo_estado = delta(estado, simbolo);
-            if(nuevo_estado == -2){
+    public Token siguienteToken(){
+        String lexema = "";
+        this.estado = 0;
+        Token token = new Token();
+        char simbolo;
+
+        do{                                             // limpiar posibles espacios delante
+            simbolo = leerCaracter();
+        }while(Character.isWhitespace(simbolo));
+
+        while(true){
+            int siguiente = delta(this.estado, simbolo);
+
+            if(siguiente == -2){        // tenemos error léxico
                 System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto");   // lanzar error lexico
             }
-            
-            if(esEstadoFinal(nuevo_estado) == true){    // llegamos al final de un token
-                //deshacer_lookahead(nuevo_estado);
-                token.lexema = lexema;
-                // comprobar tipo del token
-                comprobar_tipo_token(nuevo_estado, token);
-                // comprobar palabras reservadas
-                return token;
 
-            }else{  // seguimos leyendo los simbolos hasta final de token
-                //concatenar_simbolo_a_token(nuevo_estado, simbolo);
-                lexema += simbolo;  // a esto se refiere concatenar_simbolo_a_token?
-                this.estado = nuevo_estado;
+            if(esEstadoFinal(siguiente)){
+                if(necesitaRetroceder(siguiente)){
+                    try{
+                        if(siguiente == 33){                                // caso doble lookahead **numentero
+                            lexema = lexema.substring(0, lexema.length() - 1);      // eliminamos el '.'
+                            fichero.seek(fichero.getFilePointer() - 2);     // retrocedemos 2 posiciones (caso numentero)
+                        }else{
+                            fichero.seek(fichero.getFilePointer() - 1);     // retrocedemos 1 posición
+                        }
+                    }catch(IOException e){
+                        e.printStackTrace();
+                    }
+                }else{
+                    lexema += simbolo;              // si no necesita retroceder añadimos el simbolo
+                }
+                token.lexema = lexema;
+                comprobar_tipo_token(siguiente, token);     // rellenamos tipo y reservadas
+                return token;
+            }else{                  // no es final
+                lexema += simbolo;
+                this.estado = siguiente;    // actualizamos estados
                 simbolo = leerCaracter();
             }
-        }while(true);
-
+        }
     }
 }
