@@ -1,5 +1,6 @@
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 
 public class AnalizadorLexico{
@@ -22,7 +23,7 @@ public class AnalizadorLexico{
             case 1: case 2: case 3: case 4: case 5:
             case 7: case 8: case 9: case 11: case 12:
             case 14: case 15: case 17: case 18: case 19:
-            case 20: case 22: case 27: case 29: case 32:
+            case 20: case 22: case 27: case 29: case 32: case 33:
                 return true;
             default:
                 return false;
@@ -240,10 +241,11 @@ public class AnalizadorLexico{
         }while(Character.isWhitespace(simbolo));
 
         while(true){
-            int siguiente = delta(this.estado, simbolo);
+            int siguiente = delta(this.estado, simbolo);        // aplicamos la transición
 
             if(siguiente == -2){        // tenemos error léxico
-                System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto");   // lanzar error lexico
+                System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto");   // lanzar error léxico
+                System.exit(-1);
             }
 
             if(esEstadoFinal(siguiente)){

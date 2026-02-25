@@ -48,7 +48,7 @@ public class DebugLexico {
                         " | lexema: \"" + t.lexema + "\""
                 );
 
-                Thread.sleep(4000);
+                Thread.sleep(2000);
 
             } while (t.tipo != Token.EOF);
             
