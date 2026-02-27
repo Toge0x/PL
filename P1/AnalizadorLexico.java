@@ -34,7 +34,6 @@ public class AnalizadorLexico{
         char currentChar;
         try{
             currentChar = (char) fichero.readByte();
-            System.out.println((int)currentChar);
             return currentChar;
         }catch(EOFException e){
             return Token.EOF;
@@ -236,11 +235,26 @@ public class AnalizadorLexico{
         Token token = new Token();
         char simbolo;
 
-        do{                                             // limpiar posibles espacios delante
+        do{
             simbolo = leerCaracter();
-        }while(Character.isWhitespace(simbolo));
+            
+            if(simbolo == Token.EOF){                   // si es fin de fichero salimos
+                Token t = new Token();
+                t.tipo = Token.EOF;
+                t.lexema = "";
+                return t;
+            }
+
+        }while(Character.isWhitespace(simbolo));        // limpiar posibles espacios delante
 
         while(true){
+            if(simbolo == Token.EOF){               // intercepta EOF al hacer un comentario y terminar antes de llamar delta(x, EOF)
+                Token t = new Token();
+                t.tipo = Token.EOF;
+                t.lexema = "";
+                return t;
+            }
+
             int siguiente = delta(this.estado, simbolo);        // aplicamos la transición
 
             if(siguiente == -2){        // tenemos error léxico
@@ -249,19 +263,21 @@ public class AnalizadorLexico{
             }
 
             if(esEstadoFinal(siguiente)){
-                if(necesitaRetroceder(siguiente)){
-                    try{
-                        if(siguiente == 33){                                // caso doble lookahead **numentero
-                            lexema = lexema.substring(0, lexema.length() - 1);      // eliminamos el '.'
-                            fichero.seek(fichero.getFilePointer() - 2);     // retrocedemos 2 posiciones (caso numentero)
-                        }else{
-                            fichero.seek(fichero.getFilePointer() - 1);     // retrocedemos 1 posición
+                if(simbolo != Token.EOF){
+                    if(necesitaRetroceder(siguiente)){
+                        try{
+                            if(siguiente == 33){                                // caso doble lookahead **numentero
+                                lexema = lexema.substring(0, lexema.length() - 1);      // eliminamos el '.'
+                                fichero.seek(fichero.getFilePointer() - 2);     // retrocedemos 2 posiciones (caso numentero)
+                            }else{
+                                fichero.seek(fichero.getFilePointer() - 1);     // retrocedemos 1 posición
+                            }
+                        }catch(IOException e){
+                            e.printStackTrace();
                         }
-                    }catch(IOException e){
-                        e.printStackTrace();
+                    }else{
+                        lexema += simbolo;              // si no necesita retroceder añadimos el simbolo
                     }
-                }else{
-                    lexema += simbolo;              // si no necesita retroceder añadimos el simbolo
                 }
                 token.lexema = lexema;
                 comprobar_tipo_token(siguiente, token);     // rellenamos tipo y reservadas
@@ -269,6 +285,14 @@ public class AnalizadorLexico{
             }else{                  // no es final
                 lexema += simbolo;
                 this.estado = siguiente;    // actualizamos estados
+                if(siguiente == 25){        // fin de comentario
+                    lexema = "";
+                    this.estado = 0;
+                    do{                                     // borramos cualquier posible ' ', '/n' o '/t' despues de comentario
+                        simbolo = leerCaracter();
+                    }while(Character.isWhitespace(simbolo));
+                    continue;
+                }
                 simbolo = leerCaracter();
             }
         }

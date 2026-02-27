@@ -18,20 +18,6 @@ public class DebugLexico {
 
             entrada.seek(0);
 
-            int b;
-            int posicion = 0;
-
-            while ((b = entrada.read()) != -1) {
-                System.out.println(
-                        "Pos: " + posicion +
-                        " | Byte: " + b +
-                        " | Char: '" + (char) b + "'"
-                );
-                posicion++;
-            }
-
-            entrada.seek(0);
-
             System.out.println("\n=== ANALISIS LEXICO ===");
 
             AnalizadorLexico al =
@@ -48,7 +34,7 @@ public class DebugLexico {
                         " | lexema: \"" + t.lexema + "\""
                 );
 
-                Thread.sleep(2000);
+                //Thread.sleep(2000);
 
             } while (t.tipo != Token.EOF);
             
