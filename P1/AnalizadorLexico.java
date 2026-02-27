@@ -2,6 +2,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.time.temporal.TemporalAdjuster;
 
 public class AnalizadorLexico{
 
@@ -255,10 +256,14 @@ public class AnalizadorLexico{
 
         while(true){
             if(simbolo == Token.EOF){               // intercepta EOF al hacer un comentario y terminar antes de llamar delta(x, EOF)
-                Token t = new Token();
-                t.tipo = Token.EOF;
-                t.lexema = "";
-                return t;
+                if(esEstadoFinal(this.estado)){
+                    token.lexema = lexema;
+                    comprobar_tipo_token(this.estado, token);
+                    return token;
+                }else{                                                                      // lanzamos error porque no ha terminado el token que se esperaba
+                    System.err.println("Error lexico: fin de fichero inesperado");
+                    System.exit(-1);
+                }
             }
 
             int siguiente = delta(this.estado, simbolo);        // aplicamos la transición
