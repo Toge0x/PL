@@ -6,8 +6,8 @@ import java.io.RandomAccessFile;
 public class AnalizadorLexico{
 
     int estado;
-    int fila = 1;
-    int columna = 1;
+    int fila;
+    int columna;
 
     RandomAccessFile fichero;
 
@@ -15,7 +15,7 @@ public class AnalizadorLexico{
         this.fichero = fich;
         this.estado = 0;
         this.fila = 1;
-        this.columna = 1;
+        this.columna = 0;
     }
 
     private boolean esEstadoFinal(int estado){
@@ -34,6 +34,12 @@ public class AnalizadorLexico{
         char currentChar;
         try{
             currentChar = (char) fichero.readByte();
+            if(currentChar == '\n'){        // si salta de linea incrementamos fila y reseteamos columna
+                this.fila++;
+                this.columna = 0;
+            }else{                          // si no es \n solo sumamos columna
+                this.columna++;
+            }
             return currentChar;
         }catch(EOFException e){
             return Token.EOF;
@@ -269,8 +275,10 @@ public class AnalizadorLexico{
                             if(siguiente == 33){                                // caso doble lookahead **numentero
                                 lexema = lexema.substring(0, lexema.length() - 1);      // eliminamos el '.'
                                 fichero.seek(fichero.getFilePointer() - 2);     // retrocedemos 2 posiciones (caso numentero)
+                                this.columna -= 2;
                             }else{
                                 fichero.seek(fichero.getFilePointer() - 1);     // retrocedemos 1 posición
+                                this.columna--;
                             }
                         }catch(IOException e){
                             e.printStackTrace();
