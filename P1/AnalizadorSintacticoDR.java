@@ -34,7 +34,7 @@ public class AnalizadorSintacticoDR{
             M();
             emparejar(Token.RBRA);
         }else{
-            lanzarErrorSintactico(Token.CLASS);   // pueden ser varios tipos, en este caso solo tenemos 1 en la predicción
+            lanzarErrorSintactico(Token.CLASS);
         }
     }
 
@@ -53,7 +53,7 @@ public class AnalizadorSintacticoDR{
             token.tipo == Token.LBRA || token.tipo == Token.ID || token.tipo == Token.IF || token.tipo == Token.PRINT){
                 // vacío, es epsilon
         }else{
-            lanzarErrorSintactico(Token.FUN, Token.CLASS, Token.RBRA, Token.INT, Token.FLOAT, Token.LBRA, Token.ID, Token.IF, Token.PRINT);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
         }
     }
 
@@ -95,7 +95,7 @@ public class AnalizadorSintacticoDR{
         }else if(token.tipo == Token.LBRA){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.PYC, Token.LBRA);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC);
         }
     }
 
@@ -131,7 +131,7 @@ public class AnalizadorSintacticoDR{
             I();
             Codp();
         }else{
-            lanzarErrorSintactico(Token.INT, Token.FLOAT, Token.LBRA, Token.ID, Token.IF, Token.PRINT);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
         }
     }
 
@@ -146,7 +146,7 @@ public class AnalizadorSintacticoDR{
         }else if(token.tipo == Token.RBRA){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.INT, Token.FLOAT, Token.LBRA, Token.ID, Token.IF, Token.PRINT);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA);
         }
     }
 
@@ -177,7 +177,7 @@ public class AnalizadorSintacticoDR{
             emparejar(Token.PRINT);
             Expr();
         }else{
-            lanzarErrorSintactico(Token.INT, Token.FLOAT, Token.LBRA, Token.ID, Token.IF, Token.PRINT);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
         }
     }
 
@@ -201,11 +201,102 @@ public class AnalizadorSintacticoDR{
     public void Expr(){
         if(token.tipo == Token.ID || token.tipo == Token.NUMENTERO
             || token.tipo == Token.NUMREAL || token.tipo == Token.PARI){
-                E();
-                Exprp();
+            E();
+            Exprp();
         }else{
             lanzarErrorSintactico(Token.ID, Token.NUMENTERO, Token.NUMREAL, Token.PARI);
         }
     }
 
+    // Conjuntos de predicción
+    // Regla 23: Exprp −→ oprel E = {oprel}
+    // Regla 24: Exprp −→ ϵ = {pyc rbra else fi dosp pard}
+    public void Exprp(){
+        if(token.tipo == Token.OPREL){
+            emparejar(Token.OPREL);
+            E();
+        }else if(token.tipo == Token.PYC || token.tipo == Token.RBRA || token.tipo == Token.ELSE
+            || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
+            // epsilon
+        }else{
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+        }
+    }
+
+    // Conjuntos de predicción
+    // Regla 25: E −→ T Ep = {oprel pyc rbra else fi dosp pard}
+    public void E(){
+        if(token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA ||
+            token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP ||
+            token.tipo == Token.PARD){
+            T();
+            Ep();
+        }else{
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+        }
+    }
+
+    // Conjuntos de predicción
+    // Regla 26: Ep −→ opas T Ep = {opas}
+    // Regla 27: Ep −→ ϵ = {oprel pyc rbra else fi dosp pard}
+    public void Ep(){
+        if(token.tipo == Token.OPAS){
+            emparejar(Token.OPAS);
+            T();
+            Ep();
+        }else if(token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA
+            || token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
+                // epsilon
+        }else{
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+        }
+    }
+
+    // Conjuntos de predicción
+    // Regla 28: T −→ F Tp = {id numerentero numreal pari}
+    public void T(){
+        if(token.tipo == Token.ID || token.tipo == Token.NUMENTERO || token.tipo == Token.NUMREAL || token.tipo == Token.PARI){
+            F();
+            Tp();
+        }else{
+            lanzarErrorSintactico(Token.ID, Token.NUMENTERO, Token.NUMREAL, Token.PARI);
+        }
+    }
+
+    // Conjuntos de predicción
+    // Regla 29: Tp −→ opmul F Tp = {opmul}
+    // Regla 30: Tp −→ ϵ = {opas oprel pyc rbra else fi dosp pard}
+    public void Tp(){
+        if(token.tipo == Token.OPMUL){
+            emparejar(Token.OPMUL);
+            F();
+            Tp();
+        }else if(token.tipo == Token.OPAS || token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA ||
+            token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
+            // epsilon
+        }else{
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+        }
+    }
+
+    // Conjuntos de predicción
+    // Regla 31: F −→ id = {id}
+    // Regla 32: F −→ numentero = {numentero}
+    // Regla 33: F −→ numreal = {numreal}
+    // Regla 34: F −→ pari Expr pard = {pari}
+    public void F(){
+        if(token.tipo == Token.ID){
+            emparejar(Token.ID);
+        }else if(token.tipo == Token.NUMENTERO){
+            emparejar(Token.NUMENTERO);
+        }else if(token.tipo == Token.NUMREAL){
+            emparejar(Token.NUMREAL);
+        }else if(token.tipo == Token.PARI){
+            emparejar(Token.PARI);
+            Expr();
+            emparejar(Token.PARD);
+        }else{
+            lanzarErrorSintactico(Token.ID, Token.NUMENTERO, Token.NUMREAL, Token.PARI);
+        }
+    }
 }
