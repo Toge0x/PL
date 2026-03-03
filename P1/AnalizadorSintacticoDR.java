@@ -53,7 +53,7 @@ public class AnalizadorSintacticoDR{
             token.tipo == Token.LBRA || token.tipo == Token.ID || token.tipo == Token.IF || token.tipo == Token.PRINT){
                 // vacío, es epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
+            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.INT, Token.FLOAT, Token.IF, Token.PRINT);
         }
     }
 
@@ -95,7 +95,7 @@ public class AnalizadorSintacticoDR{
         }else if(token.tipo == Token.LBRA){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC);
+            lanzarErrorSintactico(Token.LBRA, Token.PYC);
         }
     }
 
@@ -131,7 +131,7 @@ public class AnalizadorSintacticoDR{
             I();
             Codp();
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
+            lanzarErrorSintactico(Token.ID, Token.LBRA, Token.INT, Token.FLOAT, Token.IF, Token.PRINT);
         }
     }
 
@@ -146,7 +146,7 @@ public class AnalizadorSintacticoDR{
         }else if(token.tipo == Token.RBRA){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA);
+            lanzarErrorSintactico(Token.RBRA, Token.PYC);
         }
     }
 
@@ -177,7 +177,7 @@ public class AnalizadorSintacticoDR{
             emparejar(Token.PRINT);
             Expr();
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT);
+            lanzarErrorSintactico(Token.ID, Token.LBRA, Token.INT, Token.FLOAT, Token.IF, Token.PRINT);
         }
     }
 
@@ -219,7 +219,7 @@ public class AnalizadorSintacticoDR{
             || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+            lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.PARD);
         }
     }
 
@@ -232,7 +232,7 @@ public class AnalizadorSintacticoDR{
             T();
             Ep();
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+            lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.PARD);
         }
     }
 
@@ -248,7 +248,7 @@ public class AnalizadorSintacticoDR{
             || token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
                 // epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+            lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.OPAS, Token.PARD);
         }
     }
 
@@ -275,7 +275,7 @@ public class AnalizadorSintacticoDR{
             token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
             // epsilon
         }else{
-            lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.PYC, Token.INT, Token.FLOAT, Token.ASIG, Token.IF, Token.DOSP, Token.ELSE, Token.FI, Token.PRINT, Token.OPREL, Token.OPAS, Token.OPMUL, Token.NUMENTERO, Token.NUMREAL, Token.PARI, Token.PARD);
+            lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.OPAS, Token.OPMUL, Token.PARD);
         }
     }
 
