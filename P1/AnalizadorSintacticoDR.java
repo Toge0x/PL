@@ -1,7 +1,8 @@
 public class AnalizadorSintacticoDR{
     public AnalizadorLexico al;         // para llamar al siguienteToken
     public Token token;                 // para almacenar la info del token
-    public boolean mostrarReglas;       // mostrar la sucesión de reglas aplicadas
+    private boolean mostrarReglas = true;       // mostrar la sucesión de reglas aplicadas
+    private StringBuilder reglasAplicadas;
 
     public AnalizadorSintacticoDR(AnalizadorLexico al){
         this.al = al;
@@ -9,6 +10,19 @@ public class AnalizadorSintacticoDR{
 
     public void lanzarErrorSintactico(int ... tipoTokenEsperado){   // lo necesito porque pueden ser muchos tipos de error
         // TODO: aun no se que hay que hacer
+    }
+
+    public void setMostrarReglas(boolean cambio){       // si queremos cambiar y mostrar las reglas o no
+        mostrarReglas = cambio;
+    }
+
+    private void acumularRegla(int reglaAplicada){
+        if(this.reglasAplicadas.isEmpty()){
+            this.reglasAplicadas.append(reglaAplicada);
+        }else{
+            String add = " " + reglaAplicada;
+            this.reglasAplicadas.append(add);
+        }
     }
 
     public final void emparejar(int tipoTokenEsperado){
@@ -28,6 +42,7 @@ public class AnalizadorSintacticoDR{
     // Regla 1: S −→ class id lbra M rbra = {class}
     public void S(){
         if(token.tipo == Token.CLASS){
+            acumularRegla(1);
             emparejar(Token.CLASS);
             emparejar(Token.ID);
             emparejar(Token.LBRA);
@@ -44,14 +59,17 @@ public class AnalizadorSintacticoDR{
     // Regla 4: M −→ ϵ = {rbra int float lbra id if print}
     public void M(){
         if(token.tipo == Token.FUN){
+            acumularRegla(2);
             FUN();
             M();
         }else if(token.tipo == Token.CLASS){
+            acumularRegla(3);
             S();
             M();
         }else if(token.tipo == Token.RBRA || token.tipo == Token.INT ||token.tipo == Token.FLOAT ||
             token.tipo == Token.LBRA || token.tipo == Token.ID || token.tipo == Token.IF || token.tipo == Token.PRINT){
                 // vacío, es epsilon
+                acumularRegla(4);
         }else{
             lanzarErrorSintactico(Token.CLASS, Token.ID, Token.LBRA, Token.RBRA, Token.FUN, Token.INT, Token.FLOAT, Token.IF, Token.PRINT);
         }
@@ -61,6 +79,7 @@ public class AnalizadorSintacticoDR{
     // Regla 5: Fun −→ fun id A lbra M Cod rbra = {fun}
     public void FUN(){
         if(token.tipo == Token.FUN){
+            acumularRegla(5);
             emparejar(Token.FUN);
             emparejar(Token.ID);
             A();
@@ -77,6 +96,7 @@ public class AnalizadorSintacticoDR{
     // Regla 6: A −→ DV Ap = {int float}
     public void A(){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
+            acumularRegla(6);
             DV();
             Ap();
         }else{
@@ -89,11 +109,13 @@ public class AnalizadorSintacticoDR{
     // Regla 8: Ap −→ ϵ = {lbra}
     public void Ap(){
         if(token.tipo == Token.PYC){
+            acumularRegla(7);
             emparejar(Token.PYC);
             DV();
             Ap();
         }else if(token.tipo == Token.LBRA){
             // epsilon
+            acumularRegla(8);
         }else{
             lanzarErrorSintactico(Token.LBRA, Token.PYC);
         }
@@ -103,6 +125,7 @@ public class AnalizadorSintacticoDR{
     // Regla 9: DV −→ Tipo id = {int float}
     public void DV(){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
+            acumularRegla(9);
             Tipo();
             emparejar(Token.ID);
         }else{
@@ -115,8 +138,10 @@ public class AnalizadorSintacticoDR{
     // Regla 11: Tipo −→ float = {float}
     public void Tipo(){
         if(token.tipo == Token.INT){
+            acumularRegla(10);
             emparejar(Token.INT);
         }else if(token.tipo == Token.FLOAT){
+            acumularRegla(11);
             emparejar(Token.FLOAT);
         }else{
             lanzarErrorSintactico(Token.INT, Token.FLOAT);
@@ -128,6 +153,7 @@ public class AnalizadorSintacticoDR{
     public void Cod(){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT || token.tipo == Token.LBRA
             || token.tipo == Token.ID || token.tipo == Token.IF || token.tipo == Token.PRINT){
+                acumularRegla(12);
             I();
             Codp();
         }else{
@@ -140,11 +166,13 @@ public class AnalizadorSintacticoDR{
     // Regla 14: Codp −→ ϵ = {rbra}
     public void Codp(){
         if(token.tipo == Token.PYC){
+            acumularRegla(13);
             emparejar(Token.PYC);
             I();
             Codp();
         }else if(token.tipo == Token.RBRA){
             // epsilon
+            acumularRegla(14);
         }else{
             lanzarErrorSintactico(Token.RBRA, Token.PYC);
         }
@@ -158,22 +186,27 @@ public class AnalizadorSintacticoDR{
     // Regla 19: I −→ print Expr = {print}
     public void I(){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
+            acumularRegla(15);
             DV();
         }else if(token.tipo == Token.LBRA){
+            acumularRegla(16);
             emparejar(Token.LBRA);
             Cod();
             emparejar(Token.RBRA);
         }else if(token.tipo == Token.ID){
+            acumularRegla(17);
             emparejar(Token.ID);
             emparejar(Token.ASIG);
             Expr();
         }else if(token.tipo == Token.IF){
+            acumularRegla(18);
             emparejar(Token.IF);
             Expr();
             emparejar(Token.DOSP);
             I();
             Ip();
         }else if(token.tipo == Token.PRINT){
+            acumularRegla(19);
             emparejar(Token.PRINT);
             Expr();
         }else{
@@ -186,10 +219,12 @@ public class AnalizadorSintacticoDR{
     // Regla 21: Ip −→ fi = {fi}
     public void Ip(){
         if(token.tipo == Token.ELSE){
+            acumularRegla(20);
             emparejar(Token.ELSE);
             I();
             emparejar(Token.FI);
         }else if(token.tipo == Token.FI){
+            acumularRegla(21);
             emparejar(Token.FI);
         }else{
             lanzarErrorSintactico(Token.ELSE, Token.FI);
@@ -201,6 +236,7 @@ public class AnalizadorSintacticoDR{
     public void Expr(){
         if(token.tipo == Token.ID || token.tipo == Token.NUMENTERO
             || token.tipo == Token.NUMREAL || token.tipo == Token.PARI){
+                acumularRegla(22);
             E();
             Exprp();
         }else{
@@ -213,11 +249,13 @@ public class AnalizadorSintacticoDR{
     // Regla 24: Exprp −→ ϵ = {pyc rbra else fi dosp pard}
     public void Exprp(){
         if(token.tipo == Token.OPREL){
+            acumularRegla(23);
             emparejar(Token.OPREL);
             E();
         }else if(token.tipo == Token.PYC || token.tipo == Token.RBRA || token.tipo == Token.ELSE
             || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
             // epsilon
+            acumularRegla(24);
         }else{
             lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.PARD);
         }
@@ -229,6 +267,7 @@ public class AnalizadorSintacticoDR{
         if(token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA ||
             token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP ||
             token.tipo == Token.PARD){
+                acumularRegla(25);
             T();
             Ep();
         }else{
@@ -241,12 +280,14 @@ public class AnalizadorSintacticoDR{
     // Regla 27: Ep −→ ϵ = {oprel pyc rbra else fi dosp pard}
     public void Ep(){
         if(token.tipo == Token.OPAS){
+            acumularRegla(26);
             emparejar(Token.OPAS);
             T();
             Ep();
         }else if(token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA
             || token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
                 // epsilon
+                acumularRegla(27);
         }else{
             lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.OPAS, Token.PARD);
         }
@@ -256,6 +297,7 @@ public class AnalizadorSintacticoDR{
     // Regla 28: T −→ F Tp = {id numerentero numreal pari}
     public void T(){
         if(token.tipo == Token.ID || token.tipo == Token.NUMENTERO || token.tipo == Token.NUMREAL || token.tipo == Token.PARI){
+            acumularRegla(28);
             F();
             Tp();
         }else{
@@ -268,12 +310,14 @@ public class AnalizadorSintacticoDR{
     // Regla 30: Tp −→ ϵ = {opas oprel pyc rbra else fi dosp pard}
     public void Tp(){
         if(token.tipo == Token.OPMUL){
+            acumularRegla(29);
             emparejar(Token.OPMUL);
             F();
             Tp();
         }else if(token.tipo == Token.OPAS || token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA ||
             token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP || token.tipo == Token.PARD){
             // epsilon
+            acumularRegla(30);
         }else{
             lanzarErrorSintactico(Token.RBRA, Token.PYC, Token.DOSP, Token.ELSE, Token.FI, Token.OPREL, Token.OPAS, Token.OPMUL, Token.PARD);
         }
@@ -286,12 +330,16 @@ public class AnalizadorSintacticoDR{
     // Regla 34: F −→ pari Expr pard = {pari}
     public void F(){
         if(token.tipo == Token.ID){
+            acumularRegla(31);
             emparejar(Token.ID);
         }else if(token.tipo == Token.NUMENTERO){
+            acumularRegla(32);
             emparejar(Token.NUMENTERO);
         }else if(token.tipo == Token.NUMREAL){
+            acumularRegla(33);
             emparejar(Token.NUMREAL);
         }else if(token.tipo == Token.PARI){
+            acumularRegla(34);
             emparejar(Token.PARI);
             Expr();
             emparejar(Token.PARD);
