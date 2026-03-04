@@ -271,7 +271,7 @@ public class AnalizadorLexico{
             int siguiente = delta(this.estado, simbolo);        // aplicamos la transición
 
             if(siguiente == -2){        // tenemos error léxico
-                System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto");   // lanzar error léxico
+                System.err.println("Error lexico (" + fila + "," + columna + "): caracter '" + simbolo + "' incorrecto\n");   // lanzar error léxico
                 System.exit(-1);
             }
 

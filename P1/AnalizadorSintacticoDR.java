@@ -14,7 +14,7 @@ public class AnalizadorSintacticoDR{
         if(token.tipo == Token.EOF){
             System.err.print("Error sintactico: encontrado fin de fichero, esperaba");
         }else{
-            System.err.print("Error sintactico (" + token.fila + "," + token.columna + "): encontrado '" + token.lexema + "', esperaba");
+            System.err.print("Error sintactico (" + token.fila + "," + token.columna + "): encontrado '" + token.lexema + "', esperaba ");
         }
         // concantenar tercera columna
         //  Token            Expresion Regular          Cadena
@@ -23,7 +23,7 @@ public class AnalizadorSintacticoDR{
         //  ...                 ...                     ...
         for(int i = 0; i < tipoTokenEsperado.length; i++){      // cogemos todos los que lleguen
             token.tipo = tipoTokenEsperado[i];
-            String error = " " + token.toString();
+            String error = token.toString() + " ";
             System.err.print(error);
         }
         System.exit(-1);
@@ -205,7 +205,7 @@ public class AnalizadorSintacticoDR{
     // Regla 16: I −→ lbra Cod rbra = {lbra}
     // Regla 17: I −→ id asig Expr = {id}
     // Regla 18: I −→ if Expr dosp I Ip = {if}
-    // Regla 19: I −→ print Expr = {print}
+    // Regla 21: I −→ print Expr = {print}              ¡OJO: ORDEN NO LINEAL EN LA GRAMÁTICA!
     public void I(){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
             acumularRegla(15);
@@ -228,7 +228,7 @@ public class AnalizadorSintacticoDR{
             I();
             Ip();
         }else if(token.tipo == Token.PRINT){
-            acumularRegla(19);
+            acumularRegla(21);
             emparejar(Token.PRINT);
             Expr();
         }else{
@@ -237,16 +237,16 @@ public class AnalizadorSintacticoDR{
     }
 
     // Conjuntos de predicción
-    // Regla 20: Ip −→ else I fi = {else}
-    // Regla 21: Ip −→ fi = {fi}
+    // Regla 19: Ip −→ else I fi = {else}
+    // Regla 20: Ip −→ fi = {fi}
     public void Ip(){
         if(token.tipo == Token.ELSE){
-            acumularRegla(20);
+            acumularRegla(19);
             emparejar(Token.ELSE);
             I();
             emparejar(Token.FI);
         }else if(token.tipo == Token.FI){
-            acumularRegla(21);
+            acumularRegla(20);
             emparejar(Token.FI);
         }else{
             lanzarErrorSintactico(Token.ELSE, Token.FI);
