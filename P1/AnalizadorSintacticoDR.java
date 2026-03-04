@@ -26,6 +26,7 @@ public class AnalizadorSintacticoDR{
             String error = token.toString() + " ";
             System.err.print(error);
         }
+        System.err.println("\n");
         System.exit(-1);
     }
 
