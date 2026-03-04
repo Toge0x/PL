@@ -1,8 +1,6 @@
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.time.temporal.TemporalAdjuster;
 
 public class AnalizadorLexico{
 
