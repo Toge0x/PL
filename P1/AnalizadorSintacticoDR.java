@@ -1,15 +1,32 @@
 public class AnalizadorSintacticoDR{
-    public AnalizadorLexico al;         // para llamar al siguienteToken
-    public Token token;                 // para almacenar la info del token
-    private boolean mostrarReglas = true;       // mostrar la sucesión de reglas aplicadas
-    private StringBuilder reglasAplicadas;
+    public AnalizadorLexico al;                 // para llamar al siguienteToken
+    public Token token;                         // para almacenar la info del token
+    public boolean mostrarReglas = true;       // mostrar la sucesión de reglas aplicadas
+    public StringBuilder reglasAplicadas;      // acumular reglas para mostrarlas
 
     public AnalizadorSintacticoDR(AnalizadorLexico al){
         this.al = al;
+        this.token = al.siguienteToken();
+        reglasAplicadas = new StringBuilder();
     }
 
     public void lanzarErrorSintactico(int ... tipoTokenEsperado){   // lo necesito porque pueden ser muchos tipos de error
-        // TODO: aun no se que hay que hacer
+        if(token.tipo == Token.EOF){
+            System.err.print("Error sintactico: encontrado fin de fichero, esperaba");
+        }else{
+            System.err.print("Error sintactico (" + token.fila + "," + token.columna + "): encontrado '" + token.lexema + "', esperaba");
+        }
+        // concantenar tercera columna
+        //  Token            Expresion Regular          Cadena
+        //  pari                (                       (
+        //  pard                )                       )
+        //  ...                 ...                     ...
+        for(int i = 0; i < tipoTokenEsperado.length; i++){      // cogemos todos los que lleguen
+            token.tipo = tipoTokenEsperado[i];
+            String error = " " + token.toString();
+            System.err.print(error);
+        }
+        System.exit(-1);
     }
 
     public void setMostrarReglas(boolean cambio){       // si queremos cambiar y mostrar las reglas o no
@@ -17,12 +34,8 @@ public class AnalizadorSintacticoDR{
     }
 
     private void acumularRegla(int reglaAplicada){
-        if(this.reglasAplicadas.isEmpty()){
-            this.reglasAplicadas.append(reglaAplicada);
-        }else{
-            String add = " " + reglaAplicada;
-            this.reglasAplicadas.append(add);
-        }
+        String add = " " + reglaAplicada;
+        this.reglasAplicadas.append(add);
     }
 
     public final void emparejar(int tipoTokenEsperado){
@@ -30,6 +43,15 @@ public class AnalizadorSintacticoDR{
             token = al.siguienteToken();
         }else{
             lanzarErrorSintactico(tipoTokenEsperado);
+        }
+    }
+
+    public void comprobarFinFichero(){      // de las transparencias
+        if(token.tipo != Token.EOF){
+            lanzarErrorSintactico(Token.EOF);
+        }
+        if(mostrarReglas == true){
+            System.out.println(reglasAplicadas);    // mostramos las reglas aplicadas
         }
     }
 
@@ -262,12 +284,10 @@ public class AnalizadorSintacticoDR{
     }
 
     // Conjuntos de predicción
-    // Regla 25: E −→ T Ep = {oprel pyc rbra else fi dosp pard}
+    // Regla 25: E −→ T Ep = {id numerentero numreal pari}
     public void E(){
-        if(token.tipo == Token.OPREL || token.tipo == Token.PYC || token.tipo == Token.RBRA ||
-            token.tipo == Token.ELSE || token.tipo == Token.FI || token.tipo == Token.DOSP ||
-            token.tipo == Token.PARD){
-                acumularRegla(25);
+        if(token.tipo == Token.ID || token.tipo == Token.NUMENTERO || token.tipo == Token.NUMREAL || token.tipo == Token.PARI){
+            acumularRegla(25);
             T();
             Ep();
         }else{

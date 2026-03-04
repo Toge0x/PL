@@ -194,6 +194,7 @@ public class AnalizadorLexico{
             case 12:
             case 14:
             case 15:
+            case 17:
                 token.tipo = Token.OPREL;     // tipo OPREL
                 break;
             case 18:
@@ -201,7 +202,7 @@ public class AnalizadorLexico{
                 token.tipo = Token.OPAS;     // tipo OPAS
                 break;
             case 20:
-            case 21:
+            case 22:
                 token.tipo = Token.OPMUL;     // tipo OPMUL
                 break;
             case 27:
@@ -253,6 +254,9 @@ public class AnalizadorLexico{
             }
 
         }while(Character.isWhitespace(simbolo));        // limpiar posibles espacios delante
+
+        token.fila = fila;                              // actualizamos posiciones cuando limpiamos espacios
+        token.columna = columna;
 
         while(true){
             if(simbolo == Token.EOF){               // intercepta EOF al hacer un comentario y terminar antes de llamar delta(x, EOF)
