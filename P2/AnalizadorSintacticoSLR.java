@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Stack;
 
 class AnalizadorSintacticoSLR{
@@ -23,16 +24,129 @@ class AnalizadorSintacticoSLR{
     int[][] noTerminales;
     int[][] terminales;
 
+    ArrayList<Integer> reglasAplicadas = new ArrayList<>();    // mejor arraylist para imprimir en orden inverso
+    /*  como el analizador SLR obtiene la inversa de una derivación
+        por la derecha de la cadena de entrada, es necesario almacenar
+        las reglas por las que se reduce en un vector y luego imprimir
+        el vector en orden inverso para que salga una derivación correcta*/
+
     Stack<Integer> pila = new Stack<>();
 
     public AnalizadorSintacticoSLR(AnalizadorLexico al){
         this.al = al;
+        this.terminales = new int[TOTAL_ESTADOS][NUM_TERMINALES];      // tablas de ambas partes de la tabla
+        this.noTerminales = new int[TOTAL_ESTADOS][NUM_NO_TERMINALES];
+        this.inicializarTablaAnalisis();
+    }
+
+    public void analizar(){
+        pila.push(0);                      // empezamos en estado 0 (paso 2)
+        token = al.siguienteToken();            // leemos primer token (paso 3)
+        
+        while(true){                            // bucle infinito hasta aceptar o error (paso 4)
+            int estado = pila.peek();           // cogemos la cima de la pila (paso 5)
+            int accion = terminales[estado][token.tipo];
+            if(accion == ACEPTAR){              // cadena válida (paso 12)
+                imprimirReglasAplicadas();      // hay que ponerlo antes porque ACEPTAR = 1000 > 0
+                return;
+            }else if(accion > 0){                                 // caso shift (paso 6)
+                pila.push(accion);                  // apilamos el estado (paso 7)
+                token = al.siguienteToken();        // leemos siguiente (paso 8)
+            }else if(accion < 0){                           // caso reducción (paso 9)
+                int regla = -accion;
+                reglasAplicadas.add(regla);
+                this.reducir(regla);                     // reducir la regla (paso 10)
+            }else{
+                lanzarErrorSintactico();            // lanzar error (paso 14)
+            }
+        }
+    }
+
+    public int longitudRegla(int regla){
+        switch(regla){
+            case 1: return 5;       // S −→ class id lbra M rbra
+            case 2: return 2;       // M −→ Fun M
+            case 3: return 2;       // M −→ S M
+            case 4: return 0;       // M −→ ε
+            case 5: return 6;       // Fun −→ fun id lbra M Cod rbra
+            case 6: return 2;       // DV −→ Tipo id
+            case 7: return 1;       // Tipo −→ int
+            case 8: return 1;       // Tipo −→ float
+            case 9: return 3;       // Cod −→ Cod pyc I
+            case 10: return 1;      // Cod −→ I
+            case 11: return 1;      // I −→ DV
+            case 12: return 3;      // I −→ lbra Cod rbra
+            case 13: return 3;      // I −→ id asig E
+            case 14: return 2;      // I −→ print E
+            case 15: return 3;      // E −→ E opas F
+            case 16: return 1;      // E −→ F
+            case 17: return 1;      // F −→ numentero
+            case 18: return 1;      // F −→ numreal
+            case 19: return 1;      // F −→ id
+        }
+        return -1;                  // error
+    }
+
+    int cabezaRegla(int regla){     // obtener el tipo de la cabeza de la regla
+        switch(regla){
+            case 1: return NT_S;
+            case 2: case 3: case 4: return NT_M;
+            case 5: return NT_Fun;
+            case 6: return NT_DV;
+            case 7: case 8: return NT_Tipo;
+            case 9: case 10: return NT_Cod;
+            case 11: case 12: case 13: case 14: return NT_I;
+            case 15: case 16: return NT_E;
+            case 17: case 18: case 19: return NT_F;
+        }
+        return -1;
+    }
+
+    public void reducir(int regla){
+        int longitud = longitudRegla(regla);
+        int cabeza = cabezaRegla(regla);
+        int i = 0;
+
+        while(i < longitud){
+            pila.pop();         // popeamos |σ| veces (paso 10)
+            i++;
+        }
+        
+        int estadoActual = pila.peek();
+        int nuevoEstado = noTerminales[estadoActual][cabeza];
+        pila.push(nuevoEstado);     // metemos el nuevo estado (paso 11)
+    }
+
+    public void imprimirReglasAplicadas(){      // lo recorremos al revés
+        int i = reglasAplicadas.size() - 1;
+        StringBuilder salida = new StringBuilder();
+        while(i >= 0){
+            salida.append(reglasAplicadas.get(i)).append(" ");
+            i--;
+        }
+        //salida.deleteCharAt(salida.length() - 1);   // quitar el último " " no hace falta quitarlo
+        System.out.print(salida);
+    }
+
+    public void lanzarErrorSintactico(){
+        if(token.tipo == Token.EOF){
+            System.err.print("Error sintactico: encontrado fin de fichero, esperaba ");
+        }else{
+            System.err.print("Error sintactico (" + token.fila + "," + token.columna + "): encontrado '" + token.lexema + "', esperaba ");
+        }
+        
+        int estado = pila.peek();
+        int i = 0;
+        while(i < NUM_TERMINALES){
+            if(terminales[estado][i] != 0){
+                System.err.print(Token.nombreToken.get(i) + " ");   // cogemos los tokens esperados de la tabla de la izquierda
+            }
+            i++;
+        }
+        System.exit(-1);
     }
 
     public void inicializarTablaAnalisis(){
-        noTerminales = new int[TOTAL_ESTADOS][NUM_NO_TERMINALES];
-        terminales = new int[TOTAL_ESTADOS][NUM_TERMINALES];
-
         /*  ------------------------------
             INICIALIZACIÓN DE LOS ESTADOS
             ------------------------------
@@ -54,8 +168,8 @@ class AnalizadorSintacticoSLR{
         terminales[2][Token.ID] = 3;
 
         // Estado 3
-        // Operación Shift -> 3 + (rbra) −→ 4
-        terminales[3][Token.RBRA] = 4;
+        // Operación Shift -> 3 + (lbra) −→ 4
+        terminales[3][Token.LBRA] = 4;
 
         // Estado 4
         // Operación Shift -> 4 + (class) −→ 2
@@ -140,8 +254,8 @@ class AnalizadorSintacticoSLR{
         noTerminales[7][NT_Fun] = 6;
 
         // Estado 8
-        // Operación Shift -> 8 + (lbra) −→ 12
-        terminales[8][Token.LBRA] = 12;
+        // Operación Shift -> 8 + (id) −→ 12
+        terminales[8][Token.ID] = 12;
 
         // Estado 9
         // Operación Reduce -> 9 + (class) −→ 1
@@ -304,11 +418,11 @@ class AnalizadorSintacticoSLR{
 
         // Estado 22
         // Operación Reduce -> 22 + (id) −→ 7
-        terminales[22][Token.ID] = 7;
+        terminales[22][Token.ID] = -7;
 
         // Estado 23
         // Operación Reduce -> 23 + (id) −→ 8
-        terminales[23][Token.ID] = 7;
+        terminales[23][Token.ID] = -8;
 
         // Estado 24
         // Operación Reduce -> 24 + (class) −→ 5
