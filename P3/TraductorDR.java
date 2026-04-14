@@ -382,7 +382,7 @@ public class TraductorDR{
             // esto es el caso print  a+b
             //                 print  Expr
             Atributos atributosExpr = Expr();       // obtenemos los atributos de la expresión
-            
+
             String formato;                         // y construimos el formato en base a la expresión
             if(atributosExpr.tipo == Simbolo.ENTERO){
                 formato = "%d";
@@ -395,6 +395,27 @@ public class TraductorDR{
         }
     }
 
+    // Ip −→ else {I.th := Ip.th} I fi
+    // Ip.trad := "else\n" || I.trad;
 
+    // Ip −→ fi
+    // Ip.trad := "";
+    public String Ip(String th){
+        if(token.tipo == Token.ELSE){
+            // Ip −→ else {I.th := Ip.th} I fi
+            emparejar(Token.ELSE);  // consumimos el token else
+            String tradI = I(th);   // I.th := Ip.th
+            emparejar(Token.FI);    // emparejamos el token fi
+
+            // Ip.trad := "else\n" || I.trad;
+            return "else\n" + tradI;
+        }else{
+            // Ip −→ fi
+            emparejar(Token.FI);
+
+            // Ip.trad := "";
+            return "";
+        }
+    }
 
 }
