@@ -1,5 +1,3 @@
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class TraductorDR{
 
     class Atributos{
@@ -10,6 +8,7 @@ public class TraductorDR{
         public Atributos(String lexema, int tipo){
             this.lexema = lexema;
             this.tipo = tipo;
+            this.trad = lexema;
         }
 
         public Atributos(String lexema, int tipo, String trad){
@@ -31,11 +30,31 @@ public class TraductorDR{
         this.tsActual = new TablaSimbolos(null);
     }
 
+    public void lanzarErrorSintactico(int ... tipoTokenEsperado){   // lo necesito porque pueden ser muchos tipos de error
+        if(token.tipo == Token.EOF){
+            System.err.print("Error sintactico: encontrado fin de fichero, esperaba");
+        }else{
+            System.err.print("Error sintactico (" + token.fila + "," + token.columna + "): encontrado '" + token.lexema + "', esperaba ");
+        }
+        // concantenar tercera columna
+        //  Token            Expresion Regular          Cadena
+        //  pari                (                       (
+        //  pard                )                       )
+        //  ...                 ...                     ...
+        for(int i = 0; i < tipoTokenEsperado.length; i++){      // cogemos todos los que lleguen
+            token.tipo = tipoTokenEsperado[i];
+            String error = token.toString() + " ";
+            System.err.print(error);
+        }
+        System.err.println("\n");
+        System.exit(-1);
+    }
+
     public final void emparejar(int tipoTokenEsperado){
         if(token.tipo == tipoTokenEsperado){
             token = al.siguienteToken();
         }else{
-            //lanzarErrorSintactico(tipoTokenEsperado);
+            lanzarErrorSintactico(tipoTokenEsperado);
         }
     }
 
@@ -48,7 +67,40 @@ public class TraductorDR{
         }
     }
     
+    public Atributos opera(String trad1, int tipo1, String trad2, int tipo2, String operador){
+        String traduccion1, traduccion2, sufijoOperador, traduccionResultado;
+
+        if(tipo1 == Simbolo.REAL && tipo2 == Simbolo.REAL){     // ambos reales
+            sufijoOperador = "r";
+            traduccion1 = trad1;
+            traduccion2 = trad2;
+        }else if(tipo1 == Simbolo.REAL && tipo2 == Simbolo.ENTERO){     // uno real, uno entero
+            sufijoOperador = "r";
+            traduccion1 = trad1;
+            traduccion2 = "itor(" + trad2 + ")";
+        }else if(tipo1 == Simbolo.ENTERO && tipo2 == Simbolo.REAL){     // uno entero, uno real
+            sufijoOperador = "r";
+            traduccion1 = "itor(" + trad1 + ")";
+            traduccion2 = trad2;
+        }else{                       // ambos enteros
+            sufijoOperador = "i";
+            traduccion1 = trad1;
+            traduccion2 = trad2;
+        }
+
+        // en el caso de un entero y un real sería
+        // itor(arg_Main_main_a) +r arg_Main_main_b
+        // y el tipo de Atributos sería Simbolo.REAL
+        traduccionResultado = traduccion1 + " " + operador + sufijoOperador + " " + traduccion2;
+        int tipo = (tipo1 == Simbolo.ENTERO && tipo2 == Simbolo.ENTERO ? Simbolo.ENTERO : Simbolo.REAL);
+        return new Atributos(traduccionResultado, tipo);
+    }
     
+    public void lanzarErrorSemantico(int fila, int columna, String mensaje) {
+        System.err.println("Error semantico (" + fila + "," + columna + "): " + mensaje);
+        System.exit(1);
+    }
+
     // Empieza en ámbito = 1
 
     /*  ----------------------------------------
@@ -169,7 +221,7 @@ public class TraductorDR{
 
         // si ya existe el simbolo soltamos error semantico
         if(tsActual.set(dv) == false){
-            //errorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+            lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
         }
         
         String tradAp = Ap(th);     // Ap.th := A.th
@@ -200,7 +252,7 @@ public class TraductorDR{
 
             // si ya existe ese simbolo hay que lanzar error semantico
             if(tsActual.set(dv) == false){
-                //errorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+                lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
             }
 
             String tradAp1 = Ap(th);    // Ap1.th = th
@@ -288,19 +340,19 @@ public class TraductorDR{
     public String I(String th){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
             // I −→ DV {prefijo := I.th || "_" || DV.lexema; set(DV.lexema, DV.tipo, prefijo)};
-            Atributos atributos = DV();     // cogemos los atributos tipo, lexema del parametro
-            String prefijo = th + "_" + atributos.lexema;   // construimos el prefijo
+            Atributos atributosDV = DV();     // cogemos los atributos tipo, lexema del parametro
+            String prefijo = th + "_" + atributosDV.lexema;   // construimos el prefijo
 
             // añadimos el nuevo símbolo, es decir, el parámetro de la función
-            Simbolo simbolo = new Simbolo(atributos.lexema, atributos.tipo, prefijo);
+            Simbolo simbolo = new Simbolo(atributosDV.lexema, atributosDV.tipo, prefijo);
 
             // si ya existe el simbolo, lanzamos error semántico
             if(tsActual.set(simbolo) == false){
-                //errorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+                lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
             }
 
             // I.trad := (atributos.tipo == Simbolo.ENTERO ? "int" : "float")|| " " || prefijo || ";\n";
-            return (atributos.tipo == Simbolo.ENTERO ? "int" : "float") + " " + prefijo + ";\n";
+            return (atributosDV.tipo == Simbolo.ENTERO ? "int" : "float") + " " + prefijo + ";\n\n";
         }else if(token.tipo == Token.LBRA){
             // I −→ lbra {nuevaTabla(); Cod.th := I.th||"_"} Cod rbra
             emparejar(Token.LBRA);                      // consumimos el token lbra
@@ -310,7 +362,7 @@ public class TraductorDR{
             tsActual = tsActual.getParent();            // cerramos ámbito
 
             // I.trad := "{\n" || Cod.trad || "}\n";
-            return "{\n" + CodTrad + "}\n";
+            return "{\n" + CodTrad + "}\n\n";
         }else if(token.tipo == Token.ID){
             // I −→ id asig Expr {simbolo := get(id.lex); comprobar errores semánticos};
             // esto es el caso de a   =   b + c
@@ -334,22 +386,22 @@ public class TraductorDR{
 
             // si no existe es que no se ha declarado esa variable
             if(s == null){
-                //errorSemantico(fila, columna, "en '" + lexema + "', no ha sido declarado");
+                lanzarErrorSemantico(fila, columna, "en '" + lexema + "', no ha sido declarado");
             }
             // el tipo debe de ser de tipo entero o real, es una asignación
             if(s.tipo == Simbolo.CLASS || s.tipo == Simbolo.FUN){
-                //errorSemantico(fila, columna, "en '" + lexema + "', debe ser de tipo entero o real");
+                lanzarErrorSemantico(fila, columna, "en '" + lexema + "', debe ser de tipo entero o real");
             }
             // si la variable es entera y la expresión es real, error semántico
             if(s.tipo == Simbolo.ENTERO && atributosExpr.tipo == Simbolo.REAL){
-                //errorSemantico(filaAsig, columnaAsig, "en '=', tipos incompatibles entero/real");
+                lanzarErrorSemantico(filaAsig, columnaAsig, "en '=', tipos incompatibles entero/real");
             }
             
             // si todo va bien se consigue la traducción de la expresión
             String tradExpr = (s.tipo == Simbolo.REAL && atributosExpr.tipo == Simbolo.ENTERO) ? "itor(" + atributosExpr.trad + ")" : atributosExpr.trad;
             
             // I.trad := s.nomtrad || " = " || tradExpr || ";\n";
-            return s.nomtrad + " = " + tradExpr + ";\n";
+            return s.nomtrad + " = " + tradExpr + ";\n\n";
         }else if(token.tipo == Token.IF){
             // I −→ if Expr {Expr.tipo != ENTERO −→ ERROR} dosp {I1.th := I.th} I1 {Ip.th := I.th} Ip
             // guardamos fila, columna del token if para errores y lo consumimos
@@ -364,7 +416,7 @@ public class TraductorDR{
 
             // esta expresión debe ser de tipo entero ya que se cumple o no (0 o 1)
             if(atributosExpr.tipo != Simbolo.ENTERO){
-                //errorSemantico(filaIf, columnaIf, "en 'if', la expresion debe ser de tipo entero");
+                lanzarErrorSemantico(filaIf, columnaIf, "en 'if', la expresion debe ser de tipo entero");
             }
 
             // consumimos el token ':'
@@ -391,7 +443,7 @@ public class TraductorDR{
             }
 
             // I.trad := "printf(\"" || formato || "\"," || Expr.trad || ");\n";
-            return "printf(\"" + formato + "\"," + atributosExpr.trad + ");\n";
+            return "printf(\"" + formato + "\"," + atributosExpr.trad + ");\n\n";
         }
     }
 
@@ -418,4 +470,155 @@ public class TraductorDR{
         }
     }
 
+    // Expr −→ E Exprp  {{si Exprp.esVacio:
+    //                          Expr.trad := E.trad;
+    //                          Expr.tipo := E.tipo
+    //                   si no:
+    //                          [combinar E con Exprp según tipos];
+    // Expr.trad := t1 || " " || Exprp.operador || sufijoOperador || " " || t2;
+    // Expr.tipo := ENTERO
+    public Atributos Expr(){
+        // Expr −→ E Exprp {si, ... no, ...}
+        // Son el caso a     > b por ejemplo
+        //             E     Exprp
+        Atributos atributosE = E();
+        Atributos atributosExprp = Exprp();
+
+        if(atributosExprp == null){     // si no hay operando solo devolvemos la variable procesada en E
+            return atributosE;
+        }else{                          // si si la hay construimos la operación según tipos
+            Atributos traduccion = opera(atributosE.trad, atributosE.tipo,
+                                        atributosExprp.lexema, atributosExprp.tipo,
+                                        atributosExprp.trad);
+
+            // Expr.trad := t1 || " " || Exprp.operador || sufijoOperador || " " || t2;
+            // ya tenemos el resultado en la función opera
+            return new Atributos(traduccion.trad, Simbolo.ENTERO);
+        }
+    }
+
+    // Exprp −→ oprel E {guardar op, trad y tipo de E}
+    // Exprp −→ ϵ {return null}
+    public Atributos Exprp(){
+        if(token.tipo == Token.OPREL){      // es un operador relacional (==, <=, >=, !=, <, >)
+            String operador = token.lexema;     // guardamos el operador y consumimos token
+            emparejar(Token.OPREL);
+
+            Atributos atributosE = E();         // procesamos operando derecho
+                                                // Expr −→ E Exprp      --> a     + b
+                                                // Exprp −→ oprel E     --> +     b
+                                                // Exprp −→ ϵ
+            return new Atributos(atributosE.trad, atributosE.tipo, operador);
+        }else{
+            return null;
+        }
+    }
+
+    // E −→ T {Ep.trad := T.trad; Ep.tipo := T.tipo} Ep
+    public Atributos E(){
+        Atributos atributosT = T();
+        return Ep(atributosT.trad, atributosT.tipo);
+    }
+
+    // Ep −→ opas T Ep
+    // Ep.trad := resultado.trad; Ep.tipo := resultado.tipo
+
+    // Ep −→ ϵ
+    // Ep.trad := Ep.trad_iz; Ep.tipo := Ep.tipo_iz
+    public Atributos Ep(String trad, int tipo){
+        if(token.tipo == Token.OPAS){           // es un operador +, -
+            String operador = token.lexema;
+            emparejar(Token.OPAS);              // guardamos el lexema y consumimos
+
+            Atributos atributosT = T();         // obtenemos el resto de la expresión
+            Atributos resultado = opera(trad, tipo, atributosT.trad, atributosT.tipo, operador);
+
+            return Ep(resultado.trad, resultado.tipo);
+        }else{          // no hay más operadores
+            return new Atributos(trad, tipo);
+        }
+    }
+
+    // T −→ F {Tp.trad := F.trad; Tp.tipo := F.tipo} Tp
+    // T.trad := Tp.trad; T.tipo := Tp.tipo
+    public Atributos T(){
+        Atributos atributosF = F();
+        return Tp(atributosF.trad, atributosF.tipo);
+    }
+
+    // Tp −→ opmul F {combinar Tp.trad/tipo con F usando opera();
+    // Tp1.trad := resultado.trad; Tp1.tipo := resultado.tipo} Tp1
+    // Tp.trad := Tp1.trad; Tp.tipo := Tp1.tipo
+
+    // Tp −→ ϵ
+    public Atributos Tp(String trad, int tipo){
+        if(token.tipo == Token.OPMUL){      // es un operador *, /
+            String operador = token.lexema;
+            emparejar(Token.OPMUL);             // guardamos el lexema y consumimos
+
+            Atributos atributosF = F();         // obtenemos el resto de la expresión (F da los literales)
+            Atributos resultado = opera(trad, tipo, atributosF.trad, atributosF.tipo, operador);
+
+            return Tp(resultado.trad, resultado.tipo);
+        }else{          // no hay más operadores
+            return new Atributos(trad, tipo);
+        }
+    }
+
+    // F −→ id {get(id.lex); si simbolo == null ERROR, si simbolo FUN o CLASS ERROR}
+    // F.trad := simbolo.nomtrad; F.tipo := simbolo.tipo
+
+    // F −→ numentero
+    // F.trad := numentero.lex; F.tipo := ENTERO
+
+    // F −→ numreal
+    // F.trad := numreal.lex; F.tipo := REAL
+
+    // F −→ pari Expr pard
+    // F.trad := "(" || Expr.trad || ")"; F.tipo := Expr.tipo
+    public Atributos F(){
+        if(token.tipo == Token.ID){         // es un id
+            int fila, columna;
+            fila = token.fila;
+            columna = token.columna;
+            String lexema = token.lexema;   // cogemos el lexema y emparejamos
+            emparejar(Token.ID);
+
+            // buscamos el simbolo del id
+            Simbolo id = tsActual.get(lexema);
+            if(id == null){             // si no está declarado lanzamos error semántico
+                lanzarErrorSemantico(fila, columna, "en '" + lexema + "', no ha sido declarado");
+            }
+
+            // solo puede ser de tipo real o entero
+            if(id.tipo != Simbolo.REAL && id.tipo != Simbolo.ENTERO){
+                lanzarErrorSemantico(fila, columna, "en '" + lexema + "', debe ser de tipo entero o real");
+            }
+
+            // devolvemos el simbolo traducido con su tipo
+            // podria ser Atributos("arg_Main_main_a", Simbolo.ENTERO)
+            return new Atributos(id.nomtrad, id.tipo);
+        }else if(token.tipo == Token.NUMENTERO){           // es un entero
+            // F −→ numentero
+            String lexema = token.lexema;
+            emparejar(Token.NUMENTERO);
+            // devolvemos el lexema y el tipo
+            // podria ser Atributos("1", Simbolo.ENTERO)
+            return new Atributos(lexema, Simbolo.ENTERO);
+        }else if(token.tipo == Token.NUMREAL){              // es un real
+            // F −→ numreal
+            String lexema = token.lexema;
+            emparejar(Token.NUMREAL);
+            // devolvemos el lexema y el tipo
+            // podria ser Atributos("2.5", Simbolo.REAL)
+            return new Atributos(lexema, Simbolo.REAL);
+        }else{
+            // F −→ pari Expr pard
+            emparejar(Token.PARI);      // consumimos el token (
+            Atributos atributosExpr = Expr();   // cogemos la expresion
+            emparejar(Token.PARD);      // consumimos )
+            String traduccion = "(" + atributosExpr.trad + ")";
+            return new Atributos(traduccion, atributosExpr.tipo);
+        }
+    }
 }
