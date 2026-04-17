@@ -4,6 +4,8 @@ public class TraductorDR{
         public String trad;
         public int tipo;
         public String lexema;
+        public int fila;            // ¡CONSUME ANTES EL TOKEN Y EL ERROR SEMÁNTICO SALE MAL!
+        public int columna;         // NECESARIO GUARDARLAS ANTES EN EL MÉTODO DV
 
         public Atributos(String lexema, int tipo){
             this.lexema = lexema;
@@ -62,9 +64,6 @@ public class TraductorDR{
         if(token.tipo != Token.EOF){
             //lanzarErrorSintactico(Token.EOF);
         }
-        if(mostrarReglas == true){
-            System.out.println(reglasAplicadas);    // mostramos las reglas aplicadas
-        }
     }
     
     public Atributos opera(String trad1, int tipo1, String trad2, int tipo2, String operador){
@@ -97,7 +96,7 @@ public class TraductorDR{
     }
     
     public void lanzarErrorSemantico(int fila, int columna, String mensaje) {
-        System.err.println("Error semantico (" + fila + "," + columna + "): " + mensaje);
+        System.err.println("Error semantico (" + fila + "," + columna + "): " + mensaje + "\n");
         System.exit(1);
     }
 
@@ -139,7 +138,15 @@ public class TraductorDR{
         emparejar(Token.RBRA);                      // se cierra el ámbito
         tsActual = tsActual.getParent();            // recuperamos la anterior tabla de simbolos
 
-        return "// class " + prefijo + "\n" + tradM;
+        // provienes de una clase anidada
+        // cambia la salida de la traducción
+        if(th.isEmpty() == true){
+            // S.trad := "// class " || prefijo || "\n" || M.trad;
+            return "// class " + prefijo + "\n" + tradM;
+        }else{
+            // S.trad := "// class " || prefijo || "\n\n" || M.trad;
+            return "// class " + prefijo + "\n\n" + tradM;
+        }
     }
 
     // M −→ {Fun.th := M.th} Fun {M1.th := M.th} M1;
@@ -204,8 +211,8 @@ public class TraductorDR{
         // cerramos el ámbito y recuperamos la anterior tabla de símbolos
         tsActual = tsActual.getParent();
 
-        // Fun.trad := "void " || prefijo || "(" || A.trad || ") {\n" || M.trad || Cod.trad || "} // " || prefijo || "\n"}
-        return "void " + prefijo + "(" + tradA + ") {\n" + tradM + tradCod + "} // " + prefijo + "\n";
+        // Fun.trad := "void " || prefijo || "(" || A.trad || ") {\n" || M.trad || Cod.trad || "} // " || prefijo || "\n\n"}
+        return "void " + prefijo + "(" + tradA + ") {\n" + tradM + tradCod + "} // " + prefijo + "\n\n";
     }
 
     // A −→ DV {tradParametros := "arg_" || A.th || "_" || DV.lexema;
@@ -217,11 +224,11 @@ public class TraductorDR{
         String tradParametros = "arg_" + th + "_" + atributosDV.lexema;     // construimos la traducción necesaria de los parámetros
 
         // insertamos el símbolo en la tabla, el set del parametro de la funcion
-        Simbolo dv = new Simbolo(atributosDV.lexema, atributosDV.tipo, tradParametros);
+        Simbolo simbolo = new Simbolo(atributosDV.lexema, atributosDV.tipo, tradParametros);
 
         // si ya existe el simbolo soltamos error semantico
-        if(tsActual.set(dv) == false){
-            lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+        if(tsActual.set(simbolo) == false){
+            lanzarErrorSemantico(atributosDV.fila, atributosDV.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
         }
         
         String tradAp = Ap(th);     // Ap.th := A.th
@@ -248,17 +255,17 @@ public class TraductorDR{
             String tradParametros = "arg_" + th + "_" + atributosDV.lexema; // construimos la traducción de los parámetros
 
             // hacemos el set del simbolo, la nueva variable del parametro de la funcion
-            Simbolo dv = new Simbolo(atributosDV.lexema, atributosDV.tipo, tradParametros);
+            Simbolo simbolo = new Simbolo(atributosDV.lexema, atributosDV.tipo, tradParametros);
 
             // si ya existe ese simbolo hay que lanzar error semantico
-            if(tsActual.set(dv) == false){
-                lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+            if(tsActual.set(simbolo) == false){
+                lanzarErrorSemantico(atributosDV.fila, atributosDV.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
             }
 
             String tradAp1 = Ap(th);    // Ap1.th = th
 
             // Ap.trad := ", " || (DV.tipo == "ENTERO" ? "int" : "float") || tradParametros || Ap1.trad
-            return ", " + (atributosDV.tipo == Simbolo.ENTERO ? "int" : "float") + " " + tradParametros + tradAp1;
+            return "," + (atributosDV.tipo == Simbolo.ENTERO ? "int" : "float") + " " + tradParametros + tradAp1;
         }else{
             // Ap −→ ϵ
             // Ap.trad := "";
@@ -299,13 +306,18 @@ public class TraductorDR{
 
     // DV −→ Tipo id {DV.tipo := Tipo.tipo; DV.lexema := id.lex}
     public Atributos DV(){
+        // esto devuelve una variable en atributos, (a, Simbolo.ENTERO)
         int tipo = Tipo();      // conseguimos el tipo de la variable
         String lexema = token.lexema;   // conseguimos el lexema de la variable
+        int fila = token.fila;          // los guardamos para luego no consumir el token
+        int columna = token.columna;    // y que el error esté mal por 1 fila o columna
         emparejar(Token.ID);            // consumimos el id
 
         // devolvemos los atributos sin traducción porque no tiene
         // la traducción la va construyendo quien llama al método DV
         Atributos atributos = new Atributos(lexema, tipo);
+        atributos.fila = fila;
+        atributos.columna = columna;
         return atributos;
     }
 
@@ -339,6 +351,7 @@ public class TraductorDR{
     // I.trad := "printf(\"" || formato || "\"," || Expr.trad || ");\n";
     public String I(String th){
         if(token.tipo == Token.INT || token.tipo == Token.FLOAT){
+            // este es el caso de declaraciones −→ int Main_main_a;
             // I −→ DV {prefijo := I.th || "_" || DV.lexema; set(DV.lexema, DV.tipo, prefijo)};
             Atributos atributosDV = DV();     // cogemos los atributos tipo, lexema del parametro
             String prefijo = th + "_" + atributosDV.lexema;   // construimos el prefijo
@@ -348,10 +361,10 @@ public class TraductorDR{
 
             // si ya existe el simbolo, lanzamos error semántico
             if(tsActual.set(simbolo) == false){
-                lanzarErrorSemantico(token.fila, token.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
+                lanzarErrorSemantico(atributosDV.fila, atributosDV.columna, "en '" + atributosDV.lexema + "', ya existe en este ambito");
             }
 
-            // I.trad := (atributos.tipo == Simbolo.ENTERO ? "int" : "float")|| " " || prefijo || ";\n";
+            // I.trad := (atributos.tipo == Simbolo.ENTERO ? "int" : "float")|| " " || prefijo || ";\n\n";
             return (atributosDV.tipo == Simbolo.ENTERO ? "int" : "float") + " " + prefijo + ";\n\n";
         }else if(token.tipo == Token.LBRA){
             // I −→ lbra {nuevaTabla(); Cod.th := I.th||"_"} Cod rbra
@@ -361,7 +374,7 @@ public class TraductorDR{
             emparejar(Token.RBRA);                      // consumimos token rbra
             tsActual = tsActual.getParent();            // cerramos ámbito
 
-            // I.trad := "{\n" || Cod.trad || "}\n";
+            // I.trad := "{\n" || Cod.trad || "}\n\n";
             return "{\n" + CodTrad + "}\n\n";
         }else if(token.tipo == Token.ID){
             // I −→ id asig Expr {simbolo := get(id.lex); comprobar errores semánticos};
@@ -400,8 +413,8 @@ public class TraductorDR{
             // si todo va bien se consigue la traducción de la expresión
             String tradExpr = (s.tipo == Simbolo.REAL && atributosExpr.tipo == Simbolo.ENTERO) ? "itor(" + atributosExpr.trad + ")" : atributosExpr.trad;
             
-            // I.trad := s.nomtrad || " = " || tradExpr || ";\n";
-            return s.nomtrad + " = " + tradExpr + ";\n\n";
+            // I.trad := "  " || s.nomtrad || " = " || tradExpr || ";\n\n";
+            return "  " + s.nomtrad + " = " + tradExpr + ";\n\n";
         }else if(token.tipo == Token.IF){
             // I −→ if Expr {Expr.tipo != ENTERO −→ ERROR} dosp {I1.th := I.th} I1 {Ip.th := I.th} Ip
             // guardamos fila, columna del token if para errores y lo consumimos
@@ -442,8 +455,8 @@ public class TraductorDR{
                 formato = "%f";
             }
 
-            // I.trad := "printf(\"" || formato || "\"," || Expr.trad || ");\n";
-            return "printf(\"" + formato + "\"," + atributosExpr.trad + ");\n\n";
+            // I.trad := "  printf(\"" || formato || "\"," || Expr.trad || ");\n\n";
+            return "  printf(\"" + formato + "\"," + atributosExpr.trad + ");\n\n";
         }
     }
 
@@ -488,8 +501,8 @@ public class TraductorDR{
             return atributosE;
         }else{                          // si si la hay construimos la operación según tipos
             Atributos traduccion = opera(atributosE.trad, atributosE.tipo,
-                                        atributosExprp.lexema, atributosExprp.tipo,
-                                        atributosExprp.trad);
+                                        atributosExprp.trad, atributosExprp.tipo,
+                                        atributosExprp.lexema);
 
             // Expr.trad := t1 || " " || Exprp.operador || sufijoOperador || " " || t2;
             // ya tenemos el resultado en la función opera
@@ -508,7 +521,7 @@ public class TraductorDR{
                                                 // Expr −→ E Exprp      --> a     + b
                                                 // Exprp −→ oprel E     --> +     b
                                                 // Exprp −→ ϵ
-            return new Atributos(atributosE.trad, atributosE.tipo, operador);
+            return new Atributos(operador, atributosE.tipo, atributosE.trad);
         }else{
             return null;
         }

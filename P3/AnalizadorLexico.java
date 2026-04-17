@@ -32,7 +32,11 @@ public class AnalizadorLexico{
     public char leerCaracter(){
         char currentChar;
         try{
-            currentChar = (char) fichero.readByte();
+            int byteLeido = fichero.read();     // cambiado porque en los comentarios aparecen tildes
+            if(byteLeido == -1){                // y no son caracteres que se puedan leer con readByte()
+                return (char)Token.EOF;
+            }
+            currentChar = (char) byteLeido;
             if(currentChar == '\n'){        // si salta de linea incrementamos fila y reseteamos columna
                 this.fila++;
                 this.columna = 0;
@@ -305,7 +309,15 @@ public class AnalizadorLexico{
                     this.estado = 0;
                     do{                                     // borramos cualquier posible ' ', '/n' o '/t' despues de comentario
                         simbolo = leerCaracter();
+                        if(simbolo == (char)Token.EOF){
+                            Token t = new Token();
+                            t.tipo = Token.EOF;
+                            t.lexema = "";
+                            return t;
+                        }
                     }while(Character.isWhitespace(simbolo));
+                    token.fila = fila;
+                    token.columna = columna;
                     continue;
                 }
                 simbolo = leerCaracter();
